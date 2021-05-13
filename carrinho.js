@@ -18,7 +18,7 @@ const escreverAquivoCarrinho = async (produto) => {
 };
 
 const calcularProdutos = (produtos) => {
-  const carrinho = {
+  const valoresProdutos = {
     subtotal: 0,
     dataEntrega: null,
     valorDoFrete: 0,
@@ -26,23 +26,24 @@ const calcularProdutos = (produtos) => {
   };
 
   if (!produtos.length) {
-    return carrinho;
+    return valoresProdutos;
   }
 
   for (const produto of produtos) {
-    carrinho.subtotal += produto.preco * produto.quantidade;
+    valoresProdutos.subtotal += produto.preco * produto.quantidade;
   }
 
-  if (carrinho.subtotal <= 20000) {
-    carrinho.valorDoFrete = 5000;
+  if (valoresProdutos.subtotal <= 20000) {
+    valoresProdutos.valorDoFrete = 5000;
   } else {
-    carrinho.valorDoFrete = 0;
+    valoresProdutos.valorDoFrete = 0;
   }
 
-  carrinho.dataEntrega = diasUteis(new Date(), 15);
-  carrinho.totalAPagar = carrinho.subtotal + carrinho.valorDoFrete;
+  valoresProdutos.dataEntrega = diasUteis(new Date(), 15);
+  valoresProdutos.totalAPagar =
+    valoresProdutos.subtotal + valoresProdutos.valorDoFrete;
 
-  return carrinho;
+  return valoresProdutos;
 };
 
 const alterarCarrinho = async () => {
