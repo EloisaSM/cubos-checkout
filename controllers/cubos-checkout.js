@@ -1,4 +1,11 @@
-const { json } = require("express");
+const { listarProdutosEmEstoque } = require("../Produtos");
+const {
+  alterarCarrinho,
+  lerArquivoCarrinho,
+  escreverAquivoCarrinho,
+  adicionarCarrinho,
+  calcularProdutos,
+} = require("../carrinho");
 
 const fs = require("fs/promises");
 
