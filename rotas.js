@@ -3,9 +3,10 @@ const {
   filtrarProdutosEmEstoque,
   mostrarCarrinhoDetalhado,
   adicionarNoCarrinho,
-  // editarQuantidadeProduto,
-  deletarUmProduto,
-  limparCarrinho,
+  quantidadesAtualizadasnoCarrinho,
+  carrinhoComProdutoDeletado,
+  mostrarCarrinholimpo,
+  mostrarCompraFinalizada,
 } = require("./controllers/cubos-checkout");
 
 const rotas = express();
@@ -13,8 +14,9 @@ const rotas = express();
 rotas.get("/produtos", filtrarProdutosEmEstoque);
 rotas.get("/carrinho", mostrarCarrinhoDetalhado);
 rotas.post("/carrinho/produtos", adicionarNoCarrinho);
-// rotas.patch("/carrinho/produtos/:idProduto", editarQuantidadeProduto);
-rotas.delete("/carrinho/produtos/:idProduto", deletarUmProduto);
-rotas.delete("/carrinho", limparCarrinho);
+rotas.patch("/carrinho/produtos/:idProduto", quantidadesAtualizadasnoCarrinho);
+rotas.delete("/carrinho/produtos/:idProduto", carrinhoComProdutoDeletado);
+rotas.delete("/carrinho", mostrarCarrinholimpo);
+rotas.post("/finalizar-compra", mostrarCompraFinalizada);
 
 module.exports = rotas;
