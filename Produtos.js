@@ -25,8 +25,19 @@ async function pegarItemEstoquePorId(id) {
   return produtosEmEstoque;
 }
 
+async function estoqueSuficiente(id, quantidade) {
+  const listaProdutos = await listarProdutosEmEstoque();
+
+  const produtoEmEstoque = listaProdutos.find((produto) => produto.id === id);
+
+  return produtoEmEstoque.estoque >= quantidade;
+}
+
+//criar funcao para abater do estoque
+
 module.exports = {
   lerArquivoProdutos,
   listarProdutosEmEstoque,
   pegarItemEstoquePorId,
+  estoqueSuficiente,
 };
