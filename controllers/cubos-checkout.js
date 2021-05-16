@@ -1,27 +1,47 @@
-const { listarProdutosEmEstoque } = require("../Produtos");
+const { lerArquivoProdutosEstoque } = require("../Produtos");
 const {
   alterarCarrinho,
-  lerArquivoCarrinho,
-  escreverAquivoCarrinho,
   adicionarCarrinho,
-  calcularProdutos,
+  editarQuantidadeProduto,
+  deletarUmProduto,
+  limparCarrinho,
+  finalizarCompra,
 } = require("../carrinho");
 
-const fs = require("fs/promises");
+async function filtrarProdutosEmEstoque(req, res) {
+  const {
+    query: { categoria, precoInicial, precoFinal },
+  } = req;
 
-const lerArquivo = async () => {
-  const produtosJson = JSON.parse(await fs.readFile("data.json"));
-  const produtosArr = produtosJson.produtos;
+  const produtosEmEstoque = await lerArquivoProdutosEstoque();
 
-  return produtosArr;
-};
+  if (precoFinal && precoFinal && categoria) {
+    const FiltroFaixaDePrecoECategoria = produtosEmEstoque.filter((produto) => {
+      return (
+        produto.preco > precoInicial &&
+        produto.preco <= precoFinal &&
+        categoria === produto.categoria
+      );
+    });
 
-async function listarProdutosEmEstoque(req, res) {
-  const listaProdutos = await lerArquivo();
+    return res.json(FiltroFaixaDePrecoECategoria);
+  }
 
-  const produtosEmEstoque = listaProdutos.filter(
-    (produto) => produto.estoque > 0
-  );
+  if (categoria) {
+    const filtroPorCategoria = produtosEmEstoque.filter(
+      (produto) => produto.categoria === categoria
+    );
+
+    return res.json(filtroPorCategoria);
+  }
+
+  if (precoInicial && precoFinal) {
+    const filtroFaixaDePreco = produtosEmEstoque.filter(
+      (produto) => produto.preco >= precoInicial && produto.preco <= precoFinal
+    );
+
+    return res.json(filtroFaixaDePreco);
+  }
 
   res.json(produtosEmEstoque);
 }
@@ -37,51 +57,111 @@ async function adicionarNoCarrinho(req, res) {
     body: { id, quantidade },
   } = req;
 
-  const itensCarrinho = await lerArquivoCarrinho();
+  const carrinhoAtualizado = await adicionarCarrinho(id, quantidade);
 
-  const produtosEmEstoque = await listarProdutosEmEstoque();
-
-  const produtoEncontrado = produtosEmEstoque.find(
-    (produto) => produto.id === id
-  );
-
-  if (!produtoEncontrado) {
-    return res.status(404).json({ mensagem: "Esse produto não existe." });
-  }
-
-  if (produtoEncontrado.estoque < quantidade) {
-    return res
-      .status(404)
-      .json({ mensagem: "Esse produto não tem estoque suficiente!" });
-  }
-
-  const produto = {
-    id,
-    quantidade,
-    nome: produtoEncontrado.nome,
-    preco: produtoEncontrado.preco,
-    categoria: produtoEncontrado.categoria,
-  };
-
-  itensCarrinho.produtos.push(produto);
-  const carrinho = calcularProdutos(itensCarrinho.produtos);
-  const carrinhoAtualizado = { ...itensCarrinho, ...carrinho };
-
-  escreverAquivoCarrinho(carrinhoAtualizado);
-
-  res.status(201).json(itensCarrinho);
+  return res.json(carrinhoAtualizado);
 }
 
-async function editarQuantidadeProduto(req, res) {
+async function quantidadesAtualizadasnoCarrinho(req, res) {
+  const {
+    params: { idProduto },
+    body: { quantidade },
+  } = req;
+
+  if (!idProduto || !quantidade) {
+    return res
+      .status(400)
+      .json({ mensagem: "É preciso passar id e quantidade do produto!" });
+  }
+  const carrinhoAtualizado = await editarQuantidadeProduto(
+    Number(idProduto),
+    quantidade
+  );
+
+  if (typeof carrinhoAtualizado === "string") {
+    const erro = carrinhoAtualizado;
+    return res.status(404).json({ mensagem: erro });
+  }
+
+  return res.json(carrinhoAtualizado);
+}
+
+async function carrinhoComProdutoDeletado(req, res) {
   const {
     params: { idProduto },
   } = req;
 
-  const itensCarrinho = await lerArquivoCarrinho();
+  const carrinhoAtualizado = await deletarUmProduto(Number(idProduto));
 
-  return res.json("teste");
+  if (typeof carrinhoAtualizado === "string") {
+    const erro = carrinhoAtualizado;
+    return res.status(404).json({ mensagem: erro });
+  }
+
+  return res.json(carrinhoAtualizado);
+}
+
+async function mostrarCarrinholimpo(req, res) {
+  await limparCarrinho();
+
+  res.json({ mensagem: "O carrinho foi limpo com sucesso!" });
+}
+
+function validaDadosCliente(cliente) {
+  const { type, country, name, documents } = cliente;
+
+  const regNome = /^[A-Z][a-zA-Z]+ [A-Z][a-zA-Z]+$/;
+  const nomeEhValido = regNome.test(name);
+  const cpfReg = /^\d+$/;
+
+  if (type !== "individual") {
+    return "Verifique os dados do usuário!";
+  }
+
+  if (country.length !== 2) {
+    return "Verifique os dados do usuário!";
+  }
+
+  if (!nomeEhValido) {
+    return "Verifique os dados do usuário!";
+  }
+
+  for (const doc of documents) {
+    const ehNumero = cpfReg.test(doc.number);
+
+    if (doc.type !== "cpf" || !ehNumero || doc.number.length !== 11) {
+      return "Verifique os dados do usuário!";
+    }
+  }
+}
+
+async function mostrarCompraFinalizada(req, res) {
+  const {
+    body: { customer },
+  } = req;
+
+  const erro = validaDadosCliente(customer);
+
+  if (erro) {
+    return res.status(404).json({ mensagem: erro });
+  }
+
+  const compraFinalizada = await finalizarCompra();
+
+  if (typeof compraFinalizada === "string") {
+    const erro = compraFinalizada;
+    return res.status(404).json({ mensagem: erro });
+  }
+
+  res.json({ mensagem: compraFinalizada });
 }
 
 module.exports = {
-  listarProdutosEmEstoque,
+  filtrarProdutosEmEstoque,
+  mostrarCarrinhoDetalhado,
+  adicionarNoCarrinho,
+  quantidadesAtualizadasnoCarrinho,
+  carrinhoComProdutoDeletado,
+  mostrarCarrinholimpo,
+  mostrarCompraFinalizada,
 };
