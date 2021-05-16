@@ -1,5 +1,6 @@
 const express = require("express");
 const rotas = require("./rotas");
+// const { carregarListaDeProdutos } = require("./Produtos");
 
 const app = express();
 
